@@ -63,7 +63,7 @@ def get_news():
     feed=feedparser.parse(RSS_FEEDS[publication])
     weather = get_weather("London,UK")
     #first_article = feed['entries'][0]
-    return render_template("home.html", articles = feed['entries'], weather = weather)
+    #return render_template("home.html", articles = feed['entries'], weather = weather)
 
 @app.route("/m4", methods = ['GET', 'POST'])
 def m4(c=[0,1,2,3,4,5,6,7,8,9],flg = 9):
