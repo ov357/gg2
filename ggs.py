@@ -26,7 +26,7 @@ RSS_FEEDS = {'bbc':'http://feeds.bbci.co.uk/news/rss.xml',
 
 #def send_sms():
 # send
-#pass
+# pass
 
 
 @app.route("/gr", methods = ['GET', 'POST'])
@@ -72,41 +72,52 @@ def get_race(reu=1,crs=3):
     #                       }
     #pass
 
-#def savecotes_txt():
-#pass
+
+# def savecotes_txt():
+# pass
 
 
 @app.route("/gc", methods = ['GET', 'POST'])
-def get_cotes(dt='170612', reu=1, crs=1):
+def get_cotes(dt='170612', reu=1, crs=1, flg=9, cte=1, rdm='n'):
     reu = request.args.get("r")
     crs = request.args.get("c")
+    tmpflg = request.args.get("flg")   # allow to choose 9 or 11 LT
+    tmpcte = request.args.get("cte")   # allow to choose which odds to use
+    tmprdm = request.args.get("rdm")   # allow to choose which odds to use
+    if tmpflg:
+        flg = tmpflg
+    if tmpcte:
+        cte = int(tmpcte)
+    if tmprdm:
+        rdm=tmprdm
+    # t1=pmuvente 2=pmuinternet 3=zeturf
     # dt format = YYMMDD
     # here we need to get the cotes of the requested date/reunion/course
     api_root = 'http://www.turfoo.fr/programmes-courses/'
     api_url = api_root+'170612/reunion1-compiegne/course1-prix-major-fridolin/'
     api_url = str(get_race(reu,crs))
     print(api_url)
-    #q={}&units=metric&appid=8a839a08492fc8191c3b9e02ddcf272b'
-    #query = urllib.quote(query)
+    # q={}&units=metric&appid=8a839a08492fc8191c3b9e02ddcf272b'
+    # query = urllib.quote(query)
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
     payload = {}
-    #url = api_url.format(query)
-    #print(url)
+    # url = api_url.format(query)
+    # print(url)
     # data = urllib2.open(url).read() #urllib2 does not seem to exist for python3 try request instead
     data = requests.get(api_url, headers = headers, params = payload)
-    #use bs4
+    # use bs4
     soup = BeautifulSoup(data.content, 'html.parser')
     # print(data.text)
     z = soup.find_all('div', class_="programme_partants")
     z1 = z[0].find_all('tr', class_="row")
-    #z1 = z.find_all('tr', class_="row")
+    # z1 = z.find_all('tr', class_="row")
     # class="programme_partants"
-    #print(len(z1))
+    # print(len(z1))
     d1 = {}     #cotes1
     d2 = {}
     d3 = {}
     for e,i in enumerate(z1):
-        #first regex to replace multiple \r\n by a space
+        # first regex to replace multiple \r\n by a space
         result = re.sub(r"(?sim)\r+|\n+", r"@", i.get_text())
         # replace multiple space by a ;
         result = re.sub(r"(?sim)@+", r";", result)
@@ -125,27 +136,35 @@ def get_cotes(dt='170612', reu=1, crs=1):
             d3[e+1]=float(t[-3:-2][0])
         except:
             pass
-        #print(i.get_text())
-    #print(z1)
+        # print(i.get_text())
+    # print(z1)
     lt = sorted(d1.items(),key=operator.itemgetter(1))
     lt = [0]+[j for j,k in lt]
     lt1 = sorted(d2.items(),key=operator.itemgetter(1))
     lt1 = [0]+[j for j,k in lt1]
-    try:
+    try:        # lt zeturf
         lt2 = sorted(d3.items(),key=operator.itemgetter(1))
         lt2 = [0]+[j for j,k in lt2]
     except:
         pass
+    print('cte=',cte)
     print('Lt=',lt)
     print('Lt=1',lt1)
     try:
         print('Lt=2',lt2)
     except:
         print('looks like lt2/d3 are not available !')
-    v = m4(lt,rt='raw',flg=11,rdm='n')
-    #print(v)
-    #return str(sorted(v))
-    return render_template("m4.html", combs = sorted(v))
+    chlt = lt     #default
+    if cte == 1:
+        chlt = lt
+    elif cte == 2:
+        chlt = lt1
+    elif cte == 3:
+        chlt = lt2
+    v = m4(chlt,rt='raw',flg=flg,rdm=rdm)
+    # print(v)
+    # return str(sorted(v))
+    return render_template("m4.html", combs = sorted(v), lt=chlt,reu=reu, crs=crs, flg=flg, cte=cte)
 
 
 def storedb():
@@ -154,18 +173,29 @@ def storedb():
     r.set('foo', 'bar')
 
 
-def get_weather(query):
+def get_currency():
+    #app_id = e66979a8fb2c4eb8a1f1f5bf6b1fb1be
+    # https://openexchangerates.org/api/latest.json    ->retourne les derniers cours format json
+    # https://openexchangerates.org/api/currencies.json   ->retourne la liste de currencies et leur code
+    # https://openexchangerates.org/api/convert/:value/:from/:to   ->conversion
+    # example:https://openexchangerates.org/api/convert/19999.95/GBP/EUR?app_id=YOUR_APP_APP_ID
+    pass
+
+
+def get_weather(query,unit='metric'):
     api_url = 'http://api.openweathermap.org/data/2.5/weather'
     #q={}&units=metric&appid=8a839a08492fc8191c3b9e02ddcf272b'
     #query = urllib.quote(query)
-    payload = {'q': query, 'appid': '8a839a08492fc8191c3b9e02ddcf272b'}
+    #unit = 'metric'
+    payload = {'q': query, 'appid': '8a839a08492fc8191c3b9e02ddcf272b', 'units':unit}
     #url = api_url.format(query)
     #print(url)
     # data = urllib2.open(url).read() #urllib2 does not seem to exist for python3 try request instead
     data = requests.get(api_url, params = payload)
-    print(data.text)
+    print(data.json())
     try:
-        parsed = json.loads(data.text)
+        #parsed = json.loads(data.json())
+        parsed = data.json()
         weather = None
         if parsed.get("weather"):
             weather = {"description":parsed["weather"][0]["description"],
@@ -173,7 +203,9 @@ def get_weather(query):
             "city":parsed["name"]
             }
     except:
+        print('something happened...')
         weather = None
+    print(weather)
     return weather
 
 DEFAULTS = {'publication' : 'bbc',
@@ -184,14 +216,19 @@ DEFAULTS = {'publication' : 'bbc',
 @app.route("/", methods = ['GET', 'POST'])
 def get_news():
     query = request.args.get("publication")
+    unt = request.args.get("unit")
+    if not unt:
+        unt='metric'
+    else:
+        unt='imperial'
     if not query or query.lower() not in RSS_FEEDS:
         publication = "bbc"
     else:
         publication = query.lower()
     feed=feedparser.parse(RSS_FEEDS[publication])
-    weather = get_weather("London,UK")
+    weather = get_weather("London,UK", unt)
     #first_article = feed['entries'][0]
-    #return render_template("home.html", articles = feed['entries'], weather = weather)
+    return render_template("home.html", articles = feed['entries'], weather = weather)
 
 @app.route("/m4", methods = ['GET', 'POST'])
 def m4(c=[0,1,2,3,4,5,6,7,8,9],flg = 9, rt = 'html', rdm='N'):
@@ -225,6 +262,7 @@ def m4(c=[0,1,2,3,4,5,6,7,8,9],flg = 9, rt = 'html', rdm='N'):
         c = c[:6]+p1+p2
         #print(c)
     # multis en 4 favos - c contient la liste type
+    print('rdm=',rdm)
     if rdm.upper() == 'Y':
         #print('entering rdm')
         c = [0]+random.sample(c[1:], len(c)-1)
@@ -273,6 +311,49 @@ def m4(c=[0,1,2,3,4,5,6,7,8,9],flg = 9, rt = 'html', rdm='N'):
         return render_template("m4.html", combs = combs)
     else:
         return combs
+
+
+@app.route("/e2", methods = ['GET', 'POST'])
+def e2(rg1=1,rg2=50,loop=5,shuf='n'):
+    #pass
+    r1 = request.args.get("rg1")
+    r2 = request.args.get("rg2")
+    lp = request.args.get("loop")
+    sh = request.args.get("shuf")
+    if r1:
+        rg1 = int(r1)
+    if r2:
+        rg2 = int(r2)
+    if lp:
+        loop = int(lp)
+    if sh:
+        shuf = sh.upper()
+    l = list(range(rg1,rg2+1))
+    if shuf == 'Y':
+        l = random.sample(l,len(l))
+    # pick 2 out of 3
+    # loop=5
+    for j in range(loop):
+        ln = int(len(l)/3)
+        rem = int(len(l) % 3)
+        print('ln=',ln, rem)
+        ofs = 0
+        t = []
+        for i in range(ln):
+            x = random.sample(l[ofs:ofs+3],2)
+            print(l[ofs:ofs+3],x)
+            t.extend(x)
+            ofs+=3
+        # add the remainders
+        rem = rem * -1
+        print('rem=',rem)
+        if rem < 0:
+            t.extend(l[rem:])
+        print(len(t),t)
+        l = t[:]
+        if shuf == 'Y':
+            l = random.sample(l,len(l))
+    return str(t)
 
 
 @app.route("/eur", methods = ['GET', 'POST'])
